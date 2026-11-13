@@ -161,14 +161,12 @@ pub fn play(
             &mut d,
             &fonts,
             Character::Star,
-            [
-                Mood::Idle,
-                if combo > 8 {
-                    Mood::Nervous
-                } else {
-                    Mood::Thinking
-                },
-            ],
+            moods(
+                result,
+                combo,
+                emitted,
+                notes.first().is_some_and(|n| n.0 < 160.),
+            ),
             time,
         );
         if let Some(r) = result {
@@ -188,4 +186,29 @@ pub fn play(
         }
     }
     Ok(result)
+}
+
+fn moods(result: Option<i8>, combo: i32, emitted: usize, incoming: bool) -> [Mood; 2] {
+    match result {
+        Some(1) => [Mood::Happy, Mood::Sad],
+        Some(0) => [Mood::Sad, Mood::Happy],
+        Some(_) => [Mood::Surprised, Mood::Surprised],
+        None if emitted == 0 => [Mood::Idle, Mood::Idle],
+        None if combo > 8 => [Mood::Happy, Mood::Nervous],
+        None if incoming => [Mood::Thinking, Mood::Surprised],
+        None => [Mood::Thinking, Mood::Thinking],
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn robot_reactions_follow_match_state() {
+        assert_eq!(moods(None, 9, 20, true)[1], Mood::Nervous);
+        assert_eq!(moods(Some(1), 9, 96, false)[1], Mood::Sad);
+        assert_eq!(moods(Some(0), 0, 96, false)[1], Mood::Happy);
+        assert_eq!(moods(None, 0, 0, false)[1], Mood::Idle);
+        assert_eq!(moods(None, 0, 5, true)[1], Mood::Surprised);
+        assert_eq!(moods(None, 0, 5, false)[1], Mood::Thinking);
+    }
 }

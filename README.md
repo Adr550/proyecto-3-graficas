@@ -21,9 +21,9 @@ Double-click **Launch Game.command**, or open **dist/Orbit Club.app**. Build the
 
 ## Illustrated cast
 
-The pig, cat, axolotl, and purple star retain their original illustrations. Bleep is a code-drawn space robot replacing the yellow star. Fer uses updated astronaut artwork. Fer has warm light-medium skin, chestnut waves with curtain bangs and lighter ends, translucent brown glasses, a white-and-teal spacesuit, a jellyfish emblem, and a **small mole on her chin**.
+The pig, cat, axolotl, and purple star retain their original illustrations. Bleep is an illustrated chibi space robot replacing the yellow star, with a matching six-expression sprite sheet, circular portraits, idle bob, celebration bounce, and nervous tremble. Fer uses updated astronaut artwork. Fer has warm light-medium skin, chestnut waves with curtain bangs and lighter ends, translucent brown glasses, a white-and-teal spacesuit, a jellyfish emblem, and a **small mole on her chin**.
 
-Fer has a separate 2-column × 3-row sheet so the original character atlas stays intact. Both sheets are embedded in the executable. The original host sheet is `assets/characters/orbit-cast-atlas-v2.png`; Fer's updated sheet is `assets/characters/fer-expressions-v1.png`. The source photos are not redistributed.
+Fer has a separate 2-column × 3-row sheet so the original character atlas stays intact. All character sheets are embedded in the executable. The original host sheet is `assets/characters/orbit-cast-atlas-v2.png`; Fer's updated sheet is `assets/characters/fer-expressions-v1.png`; Bleep uses `assets/characters/bleep-expressions-v1.png`. Bleep's exact imagegen prompt is in `assets/characters/BLEEP_ART_DIRECTION.json`. The source photos are not redistributed.
 
 The six expressions are **idle, thinking, nervous, happy, sad, and surprised**. Circular face portraits and full-body illustrations react to the actual game state: Truffle worries when your finish path is short, Mochi reacts to four-in-a-row threats, Lumen reacts to check and mating threats; Bleep gets nervous during long combos, and Ember reacts to hostile bomb paths. Moves can trigger surprise; winning and losing trigger celebration and sadness. Nervous poses tremble slightly and idle poses gently bob.
 

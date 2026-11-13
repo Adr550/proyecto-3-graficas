@@ -40,16 +40,17 @@ impl Character {
             Self::Fer => Color::new(50, 171, 202, 255),
             Self::Pig => Color::new(237, 151, 178, 255),
             Self::Cat => Color::new(146, 196, 70, 255),
-            Self::Star => Color::new(226, 178, 66, 255),
+            Self::Star => Color::new(91, 179, 214, 255),
             Self::Ember => Color::new(237, 146, 85, 255),
             Self::Prism => Color::new(165, 148, 219, 255),
         }
     }
 }
 const ORIGINAL: &[u8] = include_bytes!("../assets/characters/orbit-cast-atlas-v2.png");
+const BLEEP: &[u8] = include_bytes!("../assets/characters/bleep-expressions-v1.png");
 const FER: &[u8] = include_bytes!("../assets/characters/fer-expressions-v1.png");
 fn sprite_rect(c: Character, m: Mood, width: i32, height: i32) -> Rectangle {
-    let (columns, rows, column, row) = if c == Character::Fer {
+    let (columns, rows, column, row) = if matches!(c, Character::Fer | Character::Star) {
         (2, 3, m as usize % 2, m as usize / 2)
     } else {
         (6, 6, m as usize, c as usize)
@@ -81,6 +82,7 @@ fn face_image(image: &Image, c: Character, m: Mood) -> Image {
 pub struct Cast {
     original: Texture2D,
     fer: Texture2D,
+    bleep: Texture2D,
     faces: Vec<Texture2D>,
 }
 impl Cast {
@@ -90,6 +92,7 @@ impl Cast {
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let original = Image::load_image_from_mem(".png", ORIGINAL)?;
         let fer = Image::load_image_from_mem(".png", FER)?;
+        let bleep = Image::load_image_from_mem(".png", BLEEP)?;
         let mut faces = Vec::with_capacity(36);
         for c in Character::ALL {
             for m in [
@@ -100,7 +103,13 @@ impl Cast {
                 Mood::Sad,
                 Mood::Surprised,
             ] {
-                let image = if c == Character::Fer { &fer } else { &original };
+                let image = if c == Character::Fer {
+                    &fer
+                } else if c == Character::Star {
+                    &bleep
+                } else {
+                    &original
+                };
                 let face = face_image(image, c, m);
                 let texture = rl.load_texture_from_image(t, &face)?;
                 texture.set_texture_filter(t, TextureFilter::TEXTURE_FILTER_BILINEAR);
@@ -109,22 +118,22 @@ impl Cast {
         }
         let original = rl.load_texture_from_image(t, &original)?;
         let fer = rl.load_texture_from_image(t, &fer)?;
-        for texture in [&original, &fer] {
+        let bleep = rl.load_texture_from_image(t, &bleep)?;
+        for texture in [&original, &fer, &bleep] {
             texture.set_texture_filter(t, TextureFilter::TEXTURE_FILTER_BILINEAR);
         }
         Ok(Self {
             original,
             fer,
+            bleep,
             faces,
         })
     }
     pub fn body(&self, d: &mut impl RaylibDraw, c: Character, m: Mood, r: Rectangle, time: f32) {
-        if c == Character::Star {
-            robot(d, r, time, m);
-            return;
-        }
         let atlas = if c == Character::Fer {
             &self.fer
+        } else if c == Character::Star {
+            &self.bleep
         } else {
             &self.original
         };
@@ -157,16 +166,6 @@ impl Cast {
         r: f32,
         time: f32,
     ) {
-        if c == Character::Star {
-            d.draw_circle(center.x as i32, center.y as i32, r + 2., c.color());
-            robot(
-                d,
-                Rectangle::new(center.x - r, center.y - r, r * 2., r * 2.),
-                time,
-                m,
-            );
-            return;
-        }
         let x = center.x
             + if m == Mood::Nervous {
                 (time * 31.).sin() * 1.2
@@ -215,6 +214,7 @@ impl Cast {
 pub fn export_portraits(path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
     let original = Image::load_image_from_mem(".png", ORIGINAL)?;
     let fer = Image::load_image_from_mem(".png", FER)?;
+    let bleep = Image::load_image_from_mem(".png", BLEEP)?;
     let mut sheet = Image::gen_image_color(900, 900, Color::new(225, 240, 247, 255));
     for (row, c) in Character::ALL.into_iter().enumerate() {
         for (col, m) in [
@@ -228,7 +228,17 @@ pub fn export_portraits(path: &std::path::Path) -> Result<(), Box<dyn std::error
         .into_iter()
         .enumerate()
         {
-            let face = face_image(if c == Character::Fer { &fer } else { &original }, c, m);
+            let face = face_image(
+                if c == Character::Fer {
+                    &fer
+                } else if c == Character::Star {
+                    &bleep
+                } else {
+                    &original
+                },
+                c,
+                m,
+            );
             sheet.draw_circle(col as i32 * 150 + 75, row as i32 * 150 + 75, 66, c.color());
             sheet.draw_circle(
                 col as i32 * 150 + 75,
@@ -254,9 +264,16 @@ pub fn export_art(dir: &std::path::Path) -> Result<(), Box<dyn std::error::Error
     std::fs::create_dir_all(dir)?;
     let original = Image::load_image_from_mem(".png", ORIGINAL)?;
     let fer = Image::load_image_from_mem(".png", FER)?;
+    let bleep = Image::load_image_from_mem(".png", BLEEP)?;
     let mut lineup = Image::gen_image_color(1200, 800, Color::new(228, 241, 248, 255));
     for (i, c) in Character::ALL.into_iter().enumerate() {
-        let image = if c == Character::Fer { &fer } else { &original };
+        let image = if c == Character::Fer {
+            &fer
+        } else if c == Character::Star {
+            &bleep
+        } else {
+            &original
+        };
         lineup.draw(
             image,
             sprite_rect(c, Mood::Idle, image.width(), image.height()),
@@ -287,74 +304,41 @@ pub fn export_art(dir: &std::path::Path) -> Result<(), Box<dyn std::error::Error
     Ok(())
 }
 
-fn robot(d: &mut impl RaylibDraw, r: Rectangle, time: f32, m: Mood) {
-    let x = r.x + r.width * 0.5;
-    let y = r.y + r.height * 0.4 + (time * 2.).sin() * r.height * 0.02;
-    let u = r.width;
-    d.draw_rectangle_rounded(
-        Rectangle::new(x - u * 0.25, y - u * 0.22, u * 0.5, u * 0.4),
-        0.3,
-        12,
-        Color::new(194, 216, 235, 255),
-    );
-    d.draw_rectangle_rounded(
-        Rectangle::new(x - u * 0.21, y - u * 0.17, u * 0.42, u * 0.25),
-        0.3,
-        12,
-        Color::new(22, 36, 69, 255),
-    );
-    for a in [-1., 1.] {
-        d.draw_circle(
-            (x + a * u * 0.1) as i32,
-            (y - u * 0.05) as i32,
-            u * 0.035,
-            if m == Mood::Nervous {
-                Color::ORANGE
-            } else {
-                Color::SKYBLUE
-            },
-        );
-    }
-    d.draw_line_ex(
-        Vector2::new(x, y - u * 0.22),
-        Vector2::new(x, y - u * 0.33),
-        u * 0.018,
-        Color::GRAY,
-    );
-    d.draw_circle(x as i32, (y - u * 0.34) as i32, u * 0.035, Color::GOLD);
-    d.draw_rectangle_rounded(
-        Rectangle::new(x - u * 0.16, y + u * 0.2, u * 0.32, u * 0.23),
-        0.3,
-        12,
-        Color::new(143, 178, 210, 255),
-    );
-    d.draw_circle(x as i32, (y + u * 0.3) as i32, u * 0.06, Color::SKYBLUE);
-    for a in [-1., 1.] {
-        d.draw_circle(
-            (x + a * u * 0.24) as i32,
-            (y + u * 0.27) as i32,
-            u * 0.065,
-            Color::LIGHTGRAY,
-        );
-        d.draw_ellipse(
-            (x + a * u * 0.1) as i32,
-            (y + u * 0.48) as i32,
-            u * 0.09,
-            u * 0.05,
-            Color::DARKBLUE,
-        );
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn bleep_sheet_supports_six_transparent_poses_and_portraits() {
+        let image = Image::load_image_from_mem(".png", BLEEP).unwrap();
+        assert_eq!((image.width(), image.height()), (1024, 1536));
+        let data = image.get_image_data();
+        for m in [
+            Mood::Idle,
+            Mood::Thinking,
+            Mood::Nervous,
+            Mood::Happy,
+            Mood::Sad,
+            Mood::Surprised,
+        ] {
+            let r = sprite_rect(Character::Star, m, image.width(), image.height());
+            let mut empty = 0;
+            let mut solid = 0;
+            for y in r.y as i32..(r.y + r.height) as i32 {
+                for x in r.x as i32..(r.x + r.width) as i32 {
+                    let a = data[(y * image.width() + x) as usize].a;
+                    empty += usize::from(a == 0);
+                    solid += usize::from(a > 128);
+                }
+            }
+            assert!(empty > 10000 && solid > 10000);
+            assert_eq!(face_image(&image, Character::Star, m).get_color(0, 0).a, 0);
+        }
+    }
     #[test]
     fn original_hosts_use_the_exact_original_cells() {
         for c in [
             Character::Pig,
             Character::Cat,
-            Character::Star,
             Character::Ember,
             Character::Prism,
         ] {
