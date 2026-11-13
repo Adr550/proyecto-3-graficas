@@ -1,5 +1,5 @@
 # Orbit Club
-Video de demostración: https://github.com/Adr550/proyecto-3-graficas.git
+Video de demostración: https://youtu.be/5i8Z7NjNGp0 
 A Rust + raylib space arcade built on the original flying solar system and ship. The **ship and planets remain 3D**; the characters use the **original 2D chibi illustrations**, with an updated astronaut, **Fer**. All five minigames are played against a CPU.
 
 ## Launch
