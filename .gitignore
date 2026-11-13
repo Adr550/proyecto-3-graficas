@@ -1,0 +1,24 @@
+/target/
+/node_modules/
+/work/
+/legacy-web/
+/dist/
+/screenshots/
+/renders/
+.DS_Store
+
+/legacy-orbits/
+/snapshots/
+
+/legacy-crownfall-2d/
+
+/legacy-characters-3d/
+
+# Local credentials and editor files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.idea/
+.vscode/

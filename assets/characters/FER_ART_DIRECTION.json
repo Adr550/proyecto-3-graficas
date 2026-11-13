@@ -1,0 +1,24 @@
+{
+  "tool": "built-in image_gen",
+  "runtime_asset": "fer-expressions-v1.png",
+  "layout": {
+    "columns": 2,
+    "rows": 3,
+    "expressions": [
+      "idle",
+      "thinking",
+      "nervous",
+      "happy",
+      "sad",
+      "surprised"
+    ]
+  },
+  "preserved_host_asset": "orbit-cast-atlas-v2.png",
+  "preserved_host_sha256": "d4e5db62457be6b85314cf4f06a5270dcd20c48166373a8f690c5242614928dd",
+  "prompts": [
+    "Use case: stylized-concept. Create ONE production sprite sheet PNG of the character Fer for the existing Orbit Club game. Image 1 is a STYLE REFERENCE only: match the exact soft polished chibi illustration style, white-and-teal space suit, large expressive eyes, plush rounded forms and friendly lighting of the astronaut in the first row. Do NOT reproduce the rest of the cast. Image 2 is a HAIRSTYLE reference only: long layered chestnut-brown waves, wispy curtain bangs and slightly lighter warm-brown ends; do not copy the photographed person's identity. Fer is a girl with warm light-medium tan skin (morena clara), a small delicate nose, soft subtle mouth, gentle brown eyes and large semi-transparent brown eyeglasses. She wears the original white and teal astronaut suit with teal boots/gloves and a pale clear bubble helmet. Replace the planet/Saturn suit badge with a small clearly recognizable turquoise JELLYFISH emblem: rounded bell and dangling tentacles. Hair is beautiful, flowing, layered and wavy with curtain bangs, not rounded hair clumps. Preserve the illustration style rather than the simple procedural game meshes. Layout: precisely TWO equal columns by THREE equal rows, portrait 2:3 canvas, target 1024 by 1536; six equally sized square cells. One full-body Fer in every cell; head around 32 percent down each cell, feet above 90 percent, large head and small body like the original. All six poses use identical identity, outfit, hair, glasses, camera angle and scale, with generous transparent margins so nothing crosses a cell boundary. Reading order left-to-right top-to-bottom: idle/welcoming, thinking hand to chin, nervous with sweat drops and worried hands, happy/celebrating arms raised, sad/slumped, surprised/raised hands. No labels, no lettering, no logos except the jellyfish emblem, no grid lines, no watermark, no checkerboard. A genuinely transparent PNG background: all empty margins and spaces between sprites must have alpha=0, not a white or gray rectangle. Keep soft antialiased edges and clear glasses lenses.",
+    "Edit ONLY the background of this exact Fer sprite sheet. Preserve every character, face, pose, hair strand, glasses, jellyfish emblem, colors, cell position, and the exact 1024x1536 size and 2-column by 3-row layout. Remove the entire gray/blue/brown gradient backdrop and cast shadows between and outside characters. Replace all empty background pixels with actual alpha=0 transparency. Do not paint a checkerboard or a new background. Keep soft clean antialiased character edges, translucent helmet glass, and all six isolated character silhouettes. Do not redraw, resize, move, crop, or alter the characters. Output a genuine transparent PNG cutout sheet for in-game sprites.",
+    "Keep this exact 2x3 sheet and all six Fer illustrations unchanged. Add ONE tiny subtle dark-brown beauty mark on Fer's chin, just below her mouth slightly to her left (viewer-right), consistently in all six expressions. It is a small mole, not a freckle pattern or piercing. Do not change her face, hair, outfit, glasses, colors, proportions, expressions, or layout. Also extract all six figures as clean transparent-background stickers: completely remove the gradient background and all floor shadows, replacing empty background with real zero-alpha transparency. There must be no colored, gray, or white background rectangle. Keep all six complete isolated cutouts on the same exact 1024x1536 sheet with the same positions."
+  ],
+  "notes": "Only Fer was redrawn. Original five host sprites use their unchanged original atlas cells. Fer includes the requested small chin mole."
+}
