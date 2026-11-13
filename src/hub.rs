@@ -95,9 +95,10 @@ fn ready(app: &App) -> Option<(usize, Activity)> {
 }
 fn make_app() -> App {
     let mut app = App::new();
+    app.mode = Mode::Flight;
     app.selected = Some(4);
     let p = app.world.planets[4].pos;
-    app.ship.position = p + V3::new(0., 30., 95.);
+    app.ship.position = p + V3::new(0., 45., 170.);
     app.ship.aim(p - app.ship.position);
     app.camera = app.desired_camera();
     app
@@ -240,7 +241,7 @@ fn draw(
     } else if app.mode == Mode::Flight {
         "A-D TURN / W-S THRUST / arrows aim / R faces your destination"
     } else {
-        "CLICK A PLANET TO FLY / drag to rotate the system / wheel to zoom"
+        "MAP / click a world to mark it / Tab returns to flight / G warps"
     };
     text(d, f, status, 34., 126., 17., DARK, true);
     d.draw_rectangle_rounded(rect(20., 160., 918., 633.), 0.04, 10, WHITE);
@@ -252,6 +253,31 @@ fn draw(
         0.,
         WHITE,
     );
+    if app.mode == Mode::Flight {
+        let center = Vector2::new(
+            view::SCENE.x + view::SCENE.width * 0.5,
+            view::SCENE.y + view::SCENE.height * 0.5,
+        );
+        d.draw_circle_lines(
+            center.x as i32,
+            center.y as i32,
+            7.,
+            Color::new(180, 230, 255, 160),
+        );
+        text(
+            d,
+            f,
+            &format!(
+                "SPEED {:03.0}  /  RIGHT-DRAG STEER  /  G WARP",
+                app.ship.velocity.length()
+            ),
+            view::SCENE.x + 20.,
+            view::SCENE.y + 18.,
+            14.,
+            Color::SKYBLUE,
+            true,
+        );
+    }
     let warp = app.warp_strength();
     if warp > 0.001 {
         let area = view::SCENE;
@@ -368,10 +394,13 @@ fn draw(
             f,
             pointer,
             rect(1147., y + 38., 91., 31.),
-            "Fly here",
+            "Warp / G",
             selected,
             true,
         ) {
+            return Some(20 + i as u8);
+        }
+        if pointer.clicked && card.check_collision_point_rec(pointer.point) {
             return Some(i as u8);
         }
     }
@@ -449,7 +478,7 @@ fn draw(
             if app.travelling() {
                 "Following the planet's orbit. Turning manually cancels autopilot."
             } else {
-                "Click a world, its host card, or a radar dot to fly there. Dock, then press Enter to play."
+                "Explore freely. Select a world with 1-5. G warps there; Enter plays when nearby."
             },
             975.,
             652.,
@@ -497,7 +526,7 @@ fn draw(
         wrap(
             d,
             f,
-            "Click a planet or Fly here, or press 1-5. Autopilot flies your original ship to a moving world. Enter launches its game after docking. Press H in any minigame to return to the same hub.",
+            "Explore freely from the start. Click a world or press 1-5 to mark a destination. Fly there yourself, or press G for an optional warp. Enter opens its game when nearby. H returns from a game.",
             266.,
             238.,
             744.,
@@ -507,7 +536,7 @@ fn draw(
         wrap(
             d,
             f,
-            "Tab switches map and flight. A/D or Left/Right turn your ship. Up/Down aim the nose. W/S thrust, Q/E changes height, Z/C strafes. Right-drag also steers. R points at the selected destination. X brakes. O toggles local orbit.",
+            "W/S flies forward/backward. A/D or Left/Right turn; Up/Down aim the nose. Q/E changes height; Z/C strafes. Hold right mouse to steer. Shift boosts; X brakes. Tab opens/closes the map without moving the ship. Wheel adjusts camera distance. O holds a planet orbit; manual input releases it.",
             266.,
             354.,
             744.,
@@ -568,6 +597,10 @@ pub fn run(
             clicked: rl.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT),
         };
         let inside = view::SCENE.check_collision_point_rec(p.point);
+        let piloting = inside
+            && !rect(34., 631., 361., 146.).check_collision_point_rec(p.point)
+            && !rect(430., 690., 260., 85.).check_collision_point_rec(p.point)
+            && Vector2::new(835., 691.).distance(p.point) > 78.;
         let mut action = None;
         if rl.is_key_pressed(KeyboardKey::KEY_F1) {
             help = !help;
@@ -584,6 +617,9 @@ pub fn run(
             }
             if rl.is_key_pressed(KeyboardKey::KEY_TAB) {
                 action = Some(10);
+            }
+            if rl.is_key_pressed(KeyboardKey::KEY_G) {
+                action = Some(16);
             }
             if rl.is_key_pressed(KeyboardKey::KEY_R) {
                 action = Some(14);
@@ -610,8 +646,8 @@ pub fn run(
             }
             let held = |k| if rl.is_key_down(k) { 1. } else { 0. };
             let delta = rl.get_mouse_delta();
-            let right = inside && rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_RIGHT);
-            let left = inside && rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT);
+            let right = piloting && rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_RIGHT);
+            let left = piloting && rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT);
             app.aspect = 910. / 625.;
             app.update(
                 dt,
@@ -628,7 +664,7 @@ pub fn run(
                     mouse_x: delta.x,
                     mouse_y: delta.y,
                     dragging: (right || left) && app.mode == Mode::Overview,
-                    steering: (right || left) && app.mode == Mode::Flight,
+                    steering: right && app.mode == Mode::Flight,
                     scroll: if inside {
                         rl.get_mouse_wheel_move()
                     } else {
@@ -663,10 +699,16 @@ pub fn run(
             }
         }
         match action {
-            Some(i @ 0..=4) if !help => app.travel_to(i as usize),
+            Some(i @ 0..=4) if !help => app.selected = Some(i as usize),
+            Some(i @ 20..=24) if !help => app.travel_to((i - 20) as usize),
+            Some(16) if !help => {
+                if let Some(i) = app.selected {
+                    app.travel_to(i);
+                }
+            }
             Some(10) => {
                 if app.mode == Mode::Overview {
-                    app.mode = Mode::Flight;
+                    app.start_flight(false);
                 } else {
                     let selected = app.selected;
                     app.overview();
@@ -867,6 +909,15 @@ pub fn captures(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn hub_starts_in_free_flight_with_chase_camera() {
+        let app = make_app();
+        assert_eq!(app.mode, Mode::Flight);
+        assert!(!app.travelling());
+        assert_eq!(app.ship.local, None);
+        assert!((app.camera.eye - app.ship.position).length() < 50.);
+        assert_eq!(ready(&app), None);
+    }
     #[test]
     fn arrival_gates_game_launch() {
         let mut app = make_app();

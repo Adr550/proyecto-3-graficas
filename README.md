@@ -6,8 +6,8 @@ A Rust + raylib space arcade built on the original flying solar system and ship.
 
 Double-click **Launch Game.command**, or open **dist/Orbit Club.app**. Build the application bundle with `./scripts/bundle-macos.sh` first. The resulting application is for Apple Silicon macOS and plays offline without Rust installed. The launcher opens a fresh instance of the latest build.
 
-1. Click a planet, radar dot, or **Fly here**, or press **1–5** to travel.
-2. After docking, press **Enter** or **Play** to launch that world's game.
+1. The hub starts in third-person free flight. Fly with **W/S**, turn with **A/D or arrows**, and hold **right mouse** to steer. Click a planet, radar dot, host card, or press **1–5** to mark a destination. **G** or **Warp** starts optional autopilot.
+2. Fly near a planet, then press **Enter** or **Play** to launch its game. Manual controls release any planet-relative orbit immediately.
 3. Press **H** inside a minigame to return to your ship.
 4. Beat each CPU game to earn its victory star. Visited worlds and five victory stars persist between launches; earlier progress is preserved.
 
@@ -35,7 +35,8 @@ The 3D-character experiment is preserved locally in `legacy-characters-3d/`, exc
 
 | Input | Action |
 | --- | --- |
-| 1–5 / click a planet, radar dot, or Fly here | Autopilot to a world |
+| 1–5 / click a planet, radar dot, or host card | Mark a destination |
+| G / Warp button | Optional warp autopilot |
 | Enter | Play after docking |
 | Tab | Switch map / third-person ship view |
 | W / S | Forward / reverse thrust |
@@ -46,8 +47,8 @@ The 3D-character experiment is preserved locally in `legacy-characters-3d/`, exc
 | R | Face the selected destination |
 | Shift / X | Boost / brake |
 | O | Toggle local orbit |
-| Left- or right-drag | Steer in flight; rotate the map |
-| Mouse wheel | Zoom map / adjust local orbit |
+| Right-drag | Steer in flight; rotate the map |
+| Mouse wheel | Adjust chase-camera distance / zoom map |
 | F1 / F2 | Flight guide / Character Gallery |
 | F | Fullscreen |
 
@@ -106,8 +107,8 @@ Quoridor was designed by Mirko Marchesi and published by Gigamic: [publisher's r
 ## Space arcade update
 Relic now hosts Bleep, a space robot, and Orbit Beat: a 96-note paddle rhythm duel against a speed-limited CPU, with synthesized original percussion and hit sounds at 120 BPM. Move the mouse vertically; R restarts and H returns to the hub. Inspired by the paddle/rhythm gameplay described by Nintendo: https://www.nintendo.com/en-gb/Games/WiiWare/BIT-TRIP-BEAT-284567.html . No original game's artwork or audio is used.
 
-Connect Four uses ringed and ocean planet tokens. Prism retains chess with lit, projected 3D space miniatures: scout orbs, rockets, ringed planets, satellites, solar crowns and command beacons. The chess backdrop is a starfield. Blast Orbit uses astronaut board markers and classic dark bombs with lit fuses. In free flight, hold either mouse button over the viewport and drag to turn the ship; in overview drag rotates the system view.
+Connect Four uses ringed and ocean planet tokens. Prism retains chess with lit, projected 3D space miniatures: scout orbs, rockets, ringed planets, satellites, solar crowns and command beacons. The chess backdrop is a starfield. Blast Orbit uses astronaut board markers and classic dark bombs with lit fuses. In free flight, hold the right mouse button over the viewport and drag to turn the ship; in overview drag rotates the system view.
 
-Hub: Left/Right arrows rotate the ship in place; Up/Down tilt its nose. These controls also work in the planet focus view and pause with the simulation.
+Hub: Left/Right arrows turn the ship; Up/Down tilt its nose. W/S thrust follows the heading. Tab opens the map and returns to flight at the same position and heading. The chase camera keeps a level horizon, avoids entering planets, and widens slightly at speed. Free flight has no invisible atlas boundary.
 
 Autopilot travel includes a warp-drive effect with animated radial star trails and a smooth entry/exit envelope. It stops when travel is cancelled or docking completes.

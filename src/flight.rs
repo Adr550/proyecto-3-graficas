@@ -110,6 +110,7 @@ pub struct App {
     orbit_pitch: f32,
     orbit_distance: f32,
     focus_distance: f32,
+    chase_distance: f32,
     approach: Option<Approach>,
     pub tour_elapsed: f32,
     tour_stage: usize,
@@ -138,6 +139,7 @@ impl App {
             orbit_pitch: 0.48,
             orbit_distance: 610.,
             focus_distance: 5.5,
+            chase_distance: 28.,
             approach: None,
             tour_elapsed: 0.,
             tour_stage: usize::MAX,
@@ -219,33 +221,14 @@ impl App {
             self.overview();
             return;
         }
-        if let Some(i) = self.selected {
-            let p = &self.world.planets[i];
-            let direction = (self.camera.eye - p.pos).normalized();
-            self.ship.position = p.pos + direction * p.def.radius * 5.8;
-            self.ship.velocity = V3::ZERO;
-            self.ship.aim(p.pos - self.ship.position);
-            if visit {
-                self.approach = Some(Approach {
-                    start: self.ship.position,
-                    direction,
-                    target: i,
-                    elapsed: 0.,
-                });
-            }
-        } else {
-            self.ship.position = V3::new(55., 40., 170.);
-            self.ship.velocity = V3::ZERO;
-            self.ship.aim(-self.ship.position);
-        }
+        // Changing views must preserve the ship's physical position and heading.
         self.ship.local = None;
         self.mode = Mode::Flight;
-        self.capture = !visit;
-        self.notify(if visit {
-            "Approaching the surface. Local orbit will engage automatically."
-        } else {
-            "WASD to fly / mouse to steer / Shift to boost / O for local orbit"
-        });
+        self.capture = false;
+        if visit && let Some(i) = self.selected {
+            self.travel_to(i);
+        }
+        self.notify("Free flight / W-S thrust / arrows turn / right-drag steer / Shift boost");
     }
     fn engage_local(&mut self, i: usize) {
         let p = &self.world.planets[i];
@@ -325,6 +308,7 @@ impl App {
                         (self.focus_distance * (-input.scroll * 0.1).exp()).clamp(2.5, 13.)
                 }
                 Mode::Flight => {
+                    self.chase_distance = (self.chase_distance - input.scroll * 3.).clamp(16., 65.);
                     if let Some(i) = self.ship.local {
                         self.ship.local_radius = (self.ship.local_radius - input.scroll * 3.)
                             .clamp(
@@ -345,6 +329,8 @@ impl App {
                 || input.lift != 0.
             {
                 self.approach = None;
+                // Manual piloting always releases the optional planet-relative orbit.
+                self.ship.local = None;
             }
             if self.ship.local.is_none() {
                 self.ship.target_yaw -= input.turn * dt * 1.8;
@@ -358,7 +344,12 @@ impl App {
             };
             self.ship.roll += (bank - self.ship.roll) * (1. - (-dt * 7.).exp());
         }
-        if input.steering && self.mode == Mode::Flight && self.ship.local.is_none() {
+        if input.steering
+            && !self.paused
+            && self.mode == Mode::Flight
+            && (input.mouse_x != 0. || input.mouse_y != 0.)
+        {
+            self.ship.local = None;
             self.ship.target_yaw -= input.mouse_x * 0.0026;
             self.ship.target_pitch =
                 (self.ship.target_pitch - input.mouse_y * 0.0026).clamp(-1.35, 1.35);
@@ -391,6 +382,10 @@ impl App {
         self.camera.eye = self.camera.eye.lerp(desired.eye, response);
         self.camera.target = self.camera.target.lerp(desired.target, response);
         self.camera.up = desired.up;
+        self.camera.fov += (desired.fov - self.camera.fov) * response;
+        if self.mode == Mode::Flight {
+            self.camera.eye = self.world.collide(self.camera.eye, V3::ZERO).0;
+        }
     }
     fn update_flight(&mut self, dt: f32, input: Input) {
         if let Some(approach) = self.approach.as_mut() {
@@ -436,7 +431,7 @@ impl App {
             if movement.length() > 1. {
                 movement = movement.normalized();
             }
-            let desired = movement * if input.boost { 115. } else { 44. };
+            let desired = movement * if input.boost { 150. } else { 60. };
             self.ship.velocity = self.ship.velocity.lerp(desired, 1. - (-dt * 4.).exp());
             if self.ship.gravity && !input.brake {
                 for p in &self.world.planets {
@@ -457,11 +452,6 @@ impl App {
         let (position, velocity, _) = self.world.collide(self.ship.position, self.ship.velocity);
         self.ship.position = position;
         self.ship.velocity = velocity;
-        if self.ship.position.length() > 1100. {
-            self.ship.position = self.ship.position.normalized() * 1095.;
-            self.ship.velocity = V3::ZERO;
-            self.notify("The edge of the atlas. Turn back toward the sun.");
-        }
         let i = self
             .ship
             .local
@@ -543,13 +533,14 @@ impl App {
             }
             Mode::Flight | Mode::Tour => {
                 let f = self.ship.forward();
-                let right = V3::new(self.ship.yaw.cos(), 0., -self.ship.yaw.sin());
-                let up = right.cross(f).normalized();
+                let speed = self.ship.velocity.length();
                 Camera {
-                    eye: self.ship.position - f * 24. + up * 6.,
-                    target: self.ship.position + f * 40.,
-                    up,
-                    fov: 0.8,
+                    eye: self.ship.position
+                        - f * (self.chase_distance + (speed / 150.).min(1.) * 5.)
+                        + V3::Y * 9.,
+                    target: self.ship.position + f * 18. + V3::Y * 3.,
+                    up: V3::Y,
+                    fov: 0.8 + (speed / 150.).min(1.) * 0.1,
                 }
             }
         }
@@ -576,6 +567,91 @@ impl Default for App {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn switching_map_and_flight_preserves_position_and_heading() {
+        let mut app = App::new();
+        app.ship.position = V3::new(500., 200., 300.);
+        app.ship.aim(V3::new(1., 0.3, -1.));
+        let position = app.ship.position;
+        let forward = app.ship.forward();
+        app.selected = Some(3);
+        app.start_flight(false);
+        assert_eq!(app.ship.position, position);
+        assert_eq!(app.ship.forward(), forward);
+        app.overview();
+        app.start_flight(false);
+        assert_eq!(app.ship.position, position);
+        assert_eq!(app.ship.forward(), forward);
+    }
+    #[test]
+    fn manual_thrust_releases_planet_orbit_without_jumping() {
+        let mut app = App::new();
+        app.travel_to(4);
+        for _ in 0..200 {
+            app.update(1. / 60., Input::default());
+        }
+        assert_eq!(app.ship.local, Some(4));
+        let position = app.ship.position;
+        app.update(
+            1. / 60.,
+            Input {
+                forward: -1.,
+                ..Input::default()
+            },
+        );
+        assert_eq!(app.ship.local, None);
+        assert!((app.ship.position - position).length() < 1.);
+        for _ in 0..120 {
+            app.update(
+                1. / 60.,
+                Input {
+                    forward: -1.,
+                    ..Input::default()
+                },
+            );
+        }
+        assert!((app.ship.position - position).length() > 70.);
+    }
+    #[test]
+    fn free_flight_has_no_atlas_wall_and_is_consistent_across_frame_rates() {
+        let fly = |hz: usize| {
+            let mut app = App::new();
+            app.mode = Mode::Flight;
+            app.ship.position = V3::new(1300., 300., 0.);
+            app.ship.aim(V3::new(1., 0., 0.));
+            for _ in 0..hz * 3 {
+                app.update(
+                    1. / hz as f32,
+                    Input {
+                        forward: 1.,
+                        boost: true,
+                        ..Input::default()
+                    },
+                );
+            }
+            assert!(app.ship.position.x > 1650.);
+            assert_eq!(app.camera.up, V3::Y);
+            app.ship.position
+        };
+        assert!((fly(30) - fly(120)).length() < 0.1);
+    }
+    #[test]
+    fn paused_mouse_does_not_cancel_warp_or_change_heading() {
+        let mut app = App::new();
+        app.travel_to(1);
+        app.paused = true;
+        let yaw = app.ship.target_yaw;
+        app.update(
+            0.1,
+            Input {
+                steering: true,
+                mouse_x: 100.,
+                ..Input::default()
+            },
+        );
+        assert!(app.travelling());
+        assert_eq!(app.ship.target_yaw, yaw);
+    }
     #[test]
     fn hub_arrows_rotate_ship_in_place_and_respect_pause() {
         for mode in [Mode::Overview, Mode::Focus] {
